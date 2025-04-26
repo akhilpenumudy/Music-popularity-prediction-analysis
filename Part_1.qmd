@@ -1,0 +1,835 @@
+---
+title: "Part 2 of project"
+author: "Akhil Penumudy"
+date-modified: 'March 3 2025'
+format: html
+embed-resources: true
+theme: minty
+highlight-style: tango
+toc: true
+editor: visual
+---
+
+# **(1) Codebook/Datasheet:**
+
+## Background
+
+The goal of this project is to analyze the relationship between a **song's audio features** (e.g., danceability, energy, valence, tempo) and its **popularity**, as measured by Spotify streams and YouTube views. Additionally, the project will explore how YouTube engagement metrics (e.g., likes, comments, official video status) and other factors (e.g., album type, licensed status) contribute to a song's popularity. Through exploratory data analysis, this project aims to identify key trends, correlations, and potential predictors of song popularity, providing insights into what makes a song successful across platforms.
+
+## About the data set
+
+This data set consists of:
+
+-   Several statistics for the Top 10 songs of various spotify artists and their youtube video.
+
+-   It includes 26 variables for each of the songs collected from spotify and youtube
+
+-   Sourced from 7th of February, 2023
+
+## Variables and descriptions
+
+```{r}
+raw_spotify_df <- read.csv('Spotify_Youtube.csv')
+colnames(raw_spotify_df)
+```
+
+```{r}
+# Check the dimensions of the dataset (rows, columns)
+dim(raw_spotify_df)
+```
+
+### What do the variables mean?
+
+| Variable             | Description                                                                                                                                                                     |
+|------------------|------------------------------------------------------|
+| **Track**            | The name of the song as displayed on Spotify.                                                                                                                                   |
+| **Artist**           | The name of the artist who performed the song.                                                                                                                                  |
+| **Url_spotify**      | The URL link to the song on Spotify.                                                                                                                                            |
+| **Album**            | The album in which the song is contained on Spotify.                                                                                                                            |
+| **Album_type**       | Indicates whether the song was released as a single or is part of an album.                                                                                                     |
+| **Uri**              | A Spotify URI used to locate the song via the Spotify API.                                                                                                                      |
+| **Danceability**     | A measure of how suitable the track is for dancing, based on tempo, rhythm stability, beat strength, and regularity. Ranges from 0.0 (least danceable) to 1.0 (most danceable). |
+| **Energy**           | A measure of the track's intensity and activity, ranging from 0.0 to 1.0. High-energy tracks feel fast, loud, and noisy, while low-energy tracks are calmer and softer.         |
+| **Key**              | The key of the track, represented as an integer using standard Pitch Class notation (e.g., 0 = C, 1 = C♯/D♭, 2 = D). A value of -1 indicates no key was detected.               |
+| **Loudness**         | The average loudness of the track in decibels (dB), typically ranging from -60 to 0 dB. Higher values indicate louder tracks.                                                   |
+| **Speechiness**      | Detects the presence of spoken words in the track. Values above 0.66 indicate mostly spoken content, while values below 0.33 likely represent music or non-speech content.      |
+| **Acousticness**     | A confidence measure (0.0 to 1.0) of whether the track is acoustic. A value of 1.0 indicates high confidence the track is acoustic.                                             |
+| **Instrumentalness** | Predicts whether the track contains no vocals. Values closer to 1.0 indicate a higher likelihood of no vocal content.                                                           |
+| **Liveness**         | Detects the presence of an audience in the recording. Values above 0.8 suggest a strong likelihood the track was performed live.                                                |
+| **Valence**          | A measure of the track's musical positiveness, ranging from 0.0 (negative emotions like sadness or anger) to 1.0 (positive emotions like happiness or euphoria).                |
+| **Tempo**            | The estimated tempo of the track in beats per minute (BPM).                                                                                                                     |
+| **Duration_ms**      | The duration of the track in milliseconds.                                                                                                                                      |
+| **Stream**           | The number of streams the song has on Spotify.                                                                                                                                  |
+| **Url_youtube**      | The URL of the YouTube video linked to the song, if available.                                                                                                                  |
+| **Title**            | The title of the YouTube video.                                                                                                                                                 |
+| **Channel**          | The name of the YouTube channel that published the video.                                                                                                                       |
+| **Views**            | The number of views the YouTube video has received.                                                                                                                             |
+| **Likes**            | The number of likes the YouTube video has received.                                                                                                                             |
+| **Comments**         | The number of comments on the YouTube video.                                                                                                                                    |
+| **Description**      | The description of the YouTube video.                                                                                                                                           |
+| **Licensed**         | Indicates whether the video represents licensed content, meaning it was uploaded by a YouTube content partner and claimed by them.                                              |
+| **official_video**   | A boolean value indicating whether the video is the official video for the song.                                                                                                |
+
+# **(2) Summary Statistics**
+
+```{r}
+#this function just gives us the first few rows of the dataset
+head(raw_spotify_df)
+
+# This function gives us the  summary statistics for numerical columns
+summary(raw_spotify_df)
+```
+
+# **(3) Data Investigation/Question of Interest**
+
+## Question of Interest:
+
+> *Can we predict the popularity of a song (measured by Spotify streams, YouTube views and a couple other factors) based on its audio features (e.g., danceability, energy, valence)?*
+
+**Hypotheses**:
+
+1.  **Audio Features**:
+
+    -   Songs with higher **valence** (positive/happy tone) will be more popular.
+
+    -   Songs with higher **danceability** and **energy** will have more streams and views.
+
+    -   Songs with a moderate **tempo** (neither too fast nor too slow) will be more popular.
+
+2.  **YouTube Engagement**:
+
+    -   Songs with **official videos** will have significantly more views and streams.
+
+    -   Higher **likes** and **comments** on YouTube will correlate with higher Spotify streams.
+
+3.  **Other Features**:
+
+    -   **Singles** will have more streams and views compared to songs released as part of an album.
+
+    -   **Licensed content** will perform better due to higher visibility and promotion.
+
+**What I Expect to Find**:\
+I expect that a combination of audio features (e.g., danceability, energy) and YouTube engagement metrics (e.g., likes, official video status) will be strong predictors of a song's popularity. Specifically, I anticipate that songs with high danceability, energy, and positive valence, along with strong YouTube engagement, will be the most popular.
+
+# **(4) Processing**
+
+## Data Cleaning
+
+Check for missing values and decide how to handle them (e.g., remove rows, impute values)
+
+```{r}
+# Check for missing values in each column
+colSums(is.na(raw_spotify_df))
+
+# Visualize missing values 
+library(visdat)
+vis_miss(raw_spotify_df)
+clean_spotify_df <- na.omit(raw_spotify_df)
+
+
+```
+
+## Load Libraries
+
+```{r}
+# Ensure all necessary libraries are loaded 
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+library(patchwork)
+library(explore) 
+library(tidyr)
+library(broom) # Useful for tidying model output
+library(cluster) # For silhouette method in clustering
+```
+
+## Distribution of Key Variables
+
+lets start by visualizing the distribution of the features that are a good metric to show off popularity.
+
+```{r}
+# Plot 1: Distribution of Spotify Streams
+plot1 <- clean_spotify_df %>% explore(Stream)
+plot1 <-plot1 + labs(title = "Distribution of Spotify Streams") 
+
+# Plot 2: Distribution of YouTube Views
+plot2 <- clean_spotify_df %>% explore(Views)
+plot2 <-plot2 + labs(title = "Distribution of Youtube Views") + theme_bw()  
+
+combined_plots <- (plot1 | plot2)
+combined_plots
+
+```
+
+This distribution plot reveals that a majority of songs in the data set cluster around 1.095485e-08 streams, a value significantly lower than the average of 135,942,190 streams. This difference indicates that while a large number of songs receive minimal streams, a smaller subset of songs garners a disproportionately large number of streams, thereby pulling the average upward. Essentially, the data suggests a skewed distribution where only a few popular songs dominate the streaming landscape. The same concept applies to the YouTube views as well.
+
+In order gain a better understanding of the metrics in our hypothesis statements we should also look into the distribution for those variables in the data set (valence, danceability, energy and tempo)
+
+```{r}
+# Create individual histograms
+hist_valence <- ggplot(clean_spotify_df, aes(x = Valence)) +
+  geom_histogram(binwidth = 0.05, fill = "blue", color = "black") +
+  labs(title = "Valence Distribution", x = "Valence", y = "Count")
+
+hist_danceability <- ggplot(clean_spotify_df, aes(x = Danceability)) +
+  geom_histogram(binwidth = 0.05, fill = "green", color = "black") +
+  labs(title = "Danceability Distribution", x = "Danceability", y = "Count")
+
+hist_energy <- ggplot(clean_spotify_df, aes(x = Energy)) +
+  geom_histogram(binwidth = 0.05, fill = "red", color = "black") +
+  labs(title = "Energy Distribution", x = "Energy", y = "Count")
+
+hist_tempo <- ggplot(clean_spotify_df, aes(x = Tempo)) +
+  geom_histogram(binwidth = 5, fill = "purple", color = "black") +
+  labs(title = "Tempo Distribution", x = "Tempo (BPM)", y = "Count")
+
+# Combine the histograms into a single figure using patchwork
+combined_histograms <- hist_valence + hist_danceability + hist_energy + hist_tempo
+
+# Display the combined figure
+combined_histograms
+```
+
+Through this figure we can see that most songs fall within a valence range of 0.339 to 0.726, as indicated by the 25th and 75th percentiles. Essentially, this means the majority of songs lean towards a "positive" and "happy" vibe, with higher valence values approaching 1. However, the data doesn't show a strong concentration of valence values around any particular point.\
+\
+The majority of songs in this dataset exhibit energy and danceability levels around 0.68, indicating that most tracks are characterized by strong energy and are relatively danceable.
+
+The tempo distribution is quite interesting because unlike the other distributions there are two distinct peaks. One around **80-90 BPM** and another around **130-140 BPM**, suggests that the songs in the data set can be broadly categorized into two groups based on their tempo:
+
+1.  **Slower Tempo (80-90 BPM)**:
+
+    -   Songs in this range are typically slower and more relaxed. This tempo range is common in genres like **ballads**, **R&B**, **slow pop**, or **chill-out music**. These songs often evoke a calm, introspective, or emotional mood.
+
+2.  **Faster Tempo (130-140 BPM)**:
+
+    -   Songs in this range are more upbeat and energetic. This tempo range is often associated with genres like **dance-pop**, **EDM**, **house music**, or **hip-hop**. These songs are more likely to be used for dancing, working out, or creating a high-energy atmosphere.
+
+Apart from the metrics regarding the songs itself its also a good idea to understand the distribution for values in regard to the actual streaming services (YouTube likes and comments). In order to make a box plot for these variables we need to take advantage of the `pivot_longer()` function from the `tidyr` package which is used to **reshape data from wide to long format**.
+
+-   In a **wide format**, each variable has its own column (In this case `Likes` and `Comments` are separate columns which makes it wide).
+
+-   In a **long format**, multiple columns are combined into key-value pairs, making the data easier to work with for certain types of analysis or visualization.
+
+```{r}
+# Reshape the data for Likes and Comments into a long format
+clean_spotify_df_long <- clean_spotify_df %>%
+  pivot_longer(cols = c(Likes, Comments), names_to = "Metric", values_to = "Value")
+
+# Calculate the 95th percentile for Likes and Comments
+likes_75th <- quantile(clean_spotify_df$Likes, 0.75, na.rm = TRUE)
+comments_75th <- quantile(clean_spotify_df$Comments, 0.75, na.rm = TRUE)
+
+# Using ggplot i made individual box plots for Likes and Comments and zoomed into the 75th percentile due to the shear size of the dataset. 
+box_plot_likes <- ggplot(clean_spotify_df_long %>% filter(Metric == "Likes"), aes(x = Metric, y = Value, fill = Metric)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::comma) + # this formats the  y-axis labels for readability
+  coord_cartesian(ylim = c(0, likes_75th)) + # this zooms into the 75th percentile
+  labs(title = "Distribution of Likes \n(75th Percentile)",
+       x = "Metric",
+       y = "Count") +
+  theme_minimal()
+
+box_plot_comments <- ggplot(clean_spotify_df_long %>% filter(Metric == "Comments"), aes(x = Metric, y = Value, fill = Metric)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::comma) + 
+  coord_cartesian(ylim = c(0, comments_75th)) + 
+  labs(title = "Distribution of Comments \n(75th Percentile)",
+       x = "Metric",
+       y = "Count") +
+  theme_minimal()
+
+# Using the same library we can just combine these plots into one figure. 
+combined_box_plots <- box_plot_likes + box_plot_comments
+
+# Display the combined figure
+combined_box_plots
+```
+
+## Developing the Popularity Score
+
+Now that we have a clear understanding of the dataset's structure, the next step is to create a new variable that serves as a single metric for "popularity", which is the key outcome we aim to predict using the numerical features.\
+\
+This feature will be called `popularity_score`. This feature will be a value between 0 -100 and will be based on the columns `Likes`, `Comments`, `Stream`, and `Views` .
+
+*Step 1: Normalize the Columns*
+
+Since `Likes`, `Comments`, `Stream`, and `Views` are on different scales, we need to normalize them to a common scale such as from 0 to 1. This ensures that no single metric dominates the score due to its larger magnitude.
+
+For each column, use the following normalization formula:
+
+$Normalized\hspace{0.1cm}Value= \frac{Value−Min}{Max−Min}$
+
+```{r}
+# Normalize the columns
+normalize <- function(x) {
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+}
+
+clean_spotify_df <- clean_spotify_df %>%
+  mutate(
+    norm_views = normalize(Views),
+    norm_likes = normalize(Likes),
+    norm_streams = normalize(Stream),
+    norm_comments = normalize(Comments)
+  )
+```
+
+*Step 2: Assigning Weights and calculating the score*
+
+Since there are four key values we need to determine how much should each metric contribute to the score. I decided to break up the weights like so:\
+
+-   **Views**: 35% weight (since views are a strong indicator of popularity).
+
+-   **Streams**: 38% weight (Spotify streams play a huge role in how much traction an artist has, especially since more people use spotify to listen to music compared to YouTube).
+
+-   **Likes**: 16.5% weight (Engagement is important but not as much as views. Also "likes" don't determine if a song is viral, songs with a lot of dislikes can also be popular too).
+
+-   **Comments**: 10.5% weight (comments are a weaker indicator of popularity compared to likes).
+
+```{r}
+# Calculate popularity score
+clean_spotify_df <- clean_spotify_df %>%
+  mutate(
+    popularity_score = (norm_views * 0.35 + norm_likes * 0.165 + norm_streams * 0.38 + norm_comments * 0.105) * 100
+  )
+```
+
+Since the normalized values are between 0 and 1, the resulting score will also be between 0 and 1. To scale it to 0–100, we would just multiply it by 100.
+
+We will come back how this score will be used later in this project.
+
+# **(5) Analysis (Part 2)**
+
+## Correlation Analysis
+
+Next, lets look into the correlations between the numerical features.
+
+```{r}
+
+# I am going to select all of the numerical columns for correlation analysis
+numerical_df <- clean_spotify_df %>%
+  select(Stream, Views, Danceability, Energy, Loudness, Speechiness, Acousticness, Instrumentalness, Liveness, Valence, Tempo, Duration_ms, Likes, Comments)
+
+# Compute correlation matrix
+cor_matrix <- cor(numerical_df, use = "complete.obs")
+
+# Visualize correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", tl.col = "black", tl.srt = 45)
+```
+
+**Interpretation of Correlations:**
+
+1.  **Popularity Metrics:**
+
+    -   Stream, Views, Likes, and Comments are all positively correlated with each other, especially Views and Likes (strong positive correlation). This makes intuitive sense – popular songs tend to be popular across different metrics and platforms. This supports the creation of a combined popularity_score.
+
+2.  **Audio Features and Popularity:**
+
+    -   **Loudness** shows a moderate positive correlation with Stream, Views, and Likes. Louder tracks (often perceived as more energetic or professionally produced) tend to be more popular.
+
+    -   **Energy** also shows a positive correlation with Stream, Views, and Likes, reinforcing the idea that higher-energy tracks often gain more traction.
+
+    -   **Danceability** has a weaker positive correlation with the popularity metrics compared to Loudness or Energy.
+
+    -   **Acousticness** shows a negative correlation with Stream, Views, Likes, and Energy. Less acoustic (i.e., more electronically produced or amplified) songs tend to be more popular in this dataset.
+
+    -   **Instrumentalness** has a negative correlation with popularity metrics, suggesting songs with vocals are generally more popular.
+
+    -   **Valence** (positivity) shows a weak positive correlation with popularity metrics. While hypothesized, it doesn't appear to be a very strong driver based on correlation alone.
+
+    -   Tempo and Speechiness don't show strong linear correlations with the overall popularity metrics.
+
+3.  **Inter-Audio Feature Correlations:**
+
+    -   Energy and Loudness are strongly positively correlated, as expected.
+
+    -   Energy and Acousticness are strongly negatively correlated. High energy tracks are rarely acoustic.
+
+    -   Valence and Danceability have a moderate positive correlation. Happier songs tend to be more danceable.
+
+**Takeaway:** Loudness and Energy appear to be the strongest correlates of popularity among the audio features based on this linear analysis. Acousticness shows a notable negative relationship. The strong correlations between the raw popularity metrics justify combining them into the `popularity_score`.
+
+## Linear Regression: Predicting Popularity
+
+Before making any type of regression we need to first check for the **distribution of the dependent variable (popularity_score):**
+
+```{r}
+# Histogram of popularity_score
+hist_popularity <- ggplot(clean_spotify_df, aes(x = popularity_score)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Popularity Score", x = "Popularity Score (0-100)", y = "Count") +
+  theme_minimal()
+
+# QQ-plot for popularity_score
+qq_popularity <- ggplot(clean_spotify_df, aes(sample = popularity_score)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "QQ-Plot of Popularity Score", x = "Theoretical Quantiles", y = "Sample Quantiles") +
+  theme_minimal()
+
+hist_popularity | qq_popularity
+```
+
+The plot on the right is known as a Q-Q (Quantile-Quantile) plot and gives us an idea of whether or not data set follows a certain theoretical distribution. In this case the `popularity_score` has a heavily right-skewed (most songs have low scores, a few have very high scores). This is expected given the distributions of Views and Stream. Standard linear regression might struggle with this. A transformation (like log or square root) of the popularity_score might be beneficial, or using models more robust to skewed data.
+
+### Building the linear model
+
+Let's start with a model using core audio features identified as potentially relevant from the correlation analysis and hypotheses.
+
+```{r}
+lm_model1 <- lm(popularity_score ~ Danceability + Energy + Loudness + Speechiness + Acousticness + Instrumentalness + Liveness + Valence + Tempo, data = clean_spotify_df)
+summary(lm_model1)
+```
+
+**Interpretation of lm_model1:**
+
+-   **R-squared:** The R-squared value (and Adjusted R-squared) tells us the proportion of variance in popularity_score explained by the model. A value around 0.0303 would mean the model explains about 3% of the variation.
+
+-   **F-statistic:** The F-statistic and its p-value test the overall significance of the model. A significant p-value (typically \< 0.05) suggests that the model, as a whole, predicts the popularity_score better than chance.
+
+-   An F-statistic of 67.68 with 9 and 19539 degrees of freedom (DF) and a p-value less than 2.2e-16 strongly suggests that **there is a relationship between the variables being tested**. 
+
+-   **Coefficients:**
+
+    -   When looking at the `Estimate` column for the effect of each predictor, a positive estimate means that an increase in the predictor is associated with an increase in the popularity score, holding other variables constant.
+
+    -   Check the Pr(\>\|t\|) column (p-value) for each coefficient. Significant p-values (\< 0.05) indicate that the predictor has a statistically significant association with the popularity_score in this model.
+
+    -   **Loudness**, **Energy**, and **Acousticness** show significant coefficients, aligning with the correlation analysis (positive for Loudness/Energy, negative for Acousticness).
+
+    -   **official_video_num** likely has a significant positive coefficient, supporting the hypothesis that official videos are associated with higher popularity.
+
+    -   Other variables like Valence or Danceability might or might not be significant once other factors are controlled for.
+
+### 
+
+**Conclusion on Linear Model:**
+
+The standard linear model might not be the best at accurately predicting popularity. The R-squared is relatively low. While the coefficients give some indication of relationships, the model's predictive accuracy and the reliability of the p-values are questionable.
+
+## Hypothesis Testing
+
+```{r}
+# Define the song features to plot
+song_features <- c("Danceability", "Energy", "Loudness", "Speechiness", 
+                   "Acousticness", "Instrumentalness", "Liveness", "Valence", "Tempo")
+
+# Create a list to store individual plots
+plot_list <- list()
+
+# Loop through each feature and create a scatterplot
+for (i in seq_along(song_features)) {
+  feature <- song_features[i]
+  p <- ggplot(clean_spotify_df, aes(x = popularity_score, y = .data[[feature]])) + 
+    geom_point(alpha = 0.08, color = "darkgreen") + 
+    labs(title = paste("Popularity vs", feature), x = "Popularity Score", y = feature) + 
+    theme_minimal(base_size = 10) +  # Reduce overall font size
+    theme(plot.title = element_text(size = 9),  # Adjust title font size
+          axis.title = element_text(size = 8),  # Adjust axis labels
+          axis.text = element_text(size = 8))   # Adjust axis tick labels
+  plot_list[[i]] <- p
+}
+
+# Combine the plots into a 3x3 grid using patchwork
+combined_plots <- (plot_list[[1]] | plot_list[[2]] | plot_list[[3]]) / 
+                  (plot_list[[4]] | plot_list[[5]] | plot_list[[6]]) / 
+                  (plot_list[[7]] | plot_list[[8]] | plot_list[[9]])
+
+# Increase the plot size 
+options(repr.plot.width = 15, repr.plot.height = 12)  
+
+# Display the combined plot
+combined_plots
+```
+
+From the plots above we can start to address the first hypothesis:
+
+***Hypothesis 1:***
+
+-   *Songs with higher **valence** (positive/happy tone) will be more popular.*
+
+-   *Songs with higher **danceability** and **energy** will have more streams and views.*
+
+-   *Songs with a moderate **tempo** (neither too fast nor too slow) will be more popular.*
+
+Valence is essentially **a measure of how positive or negative a song is**. It's a way to describe the emotional impact of a song. The closer to 1 the valence is, the more happy, cheerful, euphoric the song is.\
+\
+From the bottom middle plot we can see that the points are spread and mainly clustered across the **valence** axis (0 to 1)
+
+This suggests that **valence alone is not a strong predictor of popularity**, as both high and low valence songs can be unpopular and popular. Ultimately the following claim disproves my original hypothesis of "Songs with higher **valence** (positive/happy tone) will be more popular".
+
+***Hypothesis 2:\
+**Songs with official videos will have significantly more views and streams (and thus higher popularity_score).*
+
+```{r}
+# Boxplot comparing popularity score by official video status
+ggplot(clean_spotify_df, aes(x = official_video, y = popularity_score, fill = official_video)) +
+  geom_boxplot() +
+  labs(title = "Popularity Score by Official Video Status",
+       x = "Is Official Video?",
+       y = "Popularity Score") +
+  theme_minimal() +
+  scale_fill_brewer(palette="Pastel1")
+
+# Perform t-test (Welch's t-test is default, good if variances are unequal)
+t_test_official <- t.test(popularity_score ~ official_video, data = clean_spotify_df)
+print(t_test_official)
+```
+
+Because the P-value is below 0.05, we can reject the null hypothesis (that there's no difference in means) and conclude there's a statistically significant difference in popularity_score between official and non-official videos. The mean in group FALSE and mean in group TRUE show the direction – official videos likely have a much higher mean score.
+
+This makes a lot of sense considering that, official videos usually signify a higher investment from the artist/label, are promoted more, and are the primary destination for fans seeking the canonical version of the song's visual representation. Finding a significant difference strongly supports this hypothesis.
+
+***Hypothesis 3:***
+
+*Singles will have more streams and views compared to songs released as part of an album.*
+
+```{r}
+ggplot(clean_spotify_df, aes(x = Album_type, y = popularity_score, fill = Album_type)) +
+  geom_boxplot() +
+  labs(title = "Popularity Score by Album Type",
+       x = "Album Type",
+       y = "Popularity Score") +
+  theme_minimal() +
+  scale_fill_brewer(palette="Set2")
+
+
+# If only two types ('album', 'single'), proceed with t-test
+if(length(unique(clean_spotify_df$Album_type)) == 2) {
+  t_test_album <- t.test(popularity_score ~ Album_type, data = clean_spotify_df)
+  print(t_test_album)
+} else {
+  # If more than two types, use ANOVA
+  aov_album <- aov(popularity_score ~ Album_type, data = clean_spotify_df)
+  summary(aov_album)
+}
+```
+
+The ANOVA results strongly suggest that the album type has a significant impact on the popularity score (streams and views). From the box plot it becomes more clear that that albums garner more "popularity". The reason for why this might be is because tracks from highly anticipated albums tend to create a sense of "hype" which translates to more views and streams.
+
+## Cluster Analysis
+
+Let's group songs based on their audio features to see if distinct "types" of songs emerge and if these types differ in popularity.
+
+We'll use the main audio features. Scaling is crucial because features are on different scales (e.g., Tempo vs. Danceability).
+
+```{r}
+library(factoextra)     
+# Select numerical audio features
+audio_features_df <- clean_spotify_df %>%
+  select(Danceability, Energy, Loudness, Speechiness, Acousticness,
+         Instrumentalness, Liveness, Valence, Tempo)
+
+# Scale the features (center to mean 0, scale to standard deviation 1)
+scaled_audio_features <- scale(audio_features_df)
+
+# Check the first few rows of scaled data
+head(scaled_audio_features)
+```
+
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Choose k 
+k_chosen <- 4
+kmeans_result <- kmeans(scaled_audio_features, centers = k_chosen, nstart = 25) # nstart runs algorithm multiple times
+
+# Add cluster assignments back to the original dataframe
+clean_spotify_df$cluster <- as.factor(kmeans_result$cluster)
+```
+
+```{r}
+# Calculate mean feature values for each cluster
+cluster_summary <- clean_spotify_df %>%
+  group_by(cluster) %>%
+  summarise(across(c(Danceability, Energy, Loudness, Speechiness, Acousticness,
+                     Instrumentalness, Liveness, Valence, Tempo, popularity_score), mean, na.rm = TRUE),
+            count = n()) %>%
+  arrange(desc(popularity_score)) # Order by mean popularity
+
+print(cluster_summary)
+
+# Visualize popularity score distribution across clusters
+ggplot(clean_spotify_df, aes(x = cluster, y = popularity_score, fill = cluster)) +
+  geom_boxplot() +
+  labs(title = "Popularity Score Distribution by Audio Feature Cluster",
+       x = "Cluster",
+       y = "Popularity Score") +
+  theme_minimal()
+
+# Visualize clusters using PCA (Principal Component Analysis) for dimensionality reduction
+fviz_cluster(kmeans_result, data = scaled_audio_features,
+             geom = "point",
+             ellipse.type = "convex",
+             ggtheme = theme_minimal(),
+             main = "Cluster Plot based on Audio Features")
+```
+
+The table shows the average (mean) value for each audio feature and the average popularity_score within each cluster, as well as the number of songs (count) in each cluster. The clusters are ordered by their average popularity_score from highest to lowest.
+
+Here's an interpretation of each cluster:
+
+**Cluster 4: The Mainstream Energetic Hits**
+
+-   **Popularity Score:** 2.48 (Highest)
+
+-   **Size:** 11,319 songs (Largest Cluster - \~50% of the data)
+
+-   **Key Characteristics:**
+
+    -   **High Energy (0.75) & High Loudness (-5.8 dB):** These are energetic, loud tracks, typical of modern production.
+
+    -   **Low Acousticness (0.15) & Low Instrumentalness (0.03):** Predominantly non-acoustic (electronic, amplified) with strong vocal presence.
+
+    -   **Moderate-High Danceability (0.65) & Moderate-High Valence (0.61):** Generally upbeat, positive, and suitable for dancing.
+
+    -   **Low Speechiness (0.07):** Primarily melodic music, not spoken word focused.
+
+    -   **Moderate Tempo (123 BPM):** A common tempo range for pop and dance music.
+
+-   **Interpretation:** This cluster represents the bulk of the songs in the dataset and also the most popular group on average. These are likely mainstream Pop, EDM, upbeat Hip-Hop/R&B, or Rock songs. Their characteristics (high energy, loudness, danceability, vocals, positive feel) align well with what often performs well commercially.
+
+**Cluster 1: The High-Speechiness / Rap & Hip-Hop Contenders**
+
+-   **Popularity Score:** 2.04 (Second Highest)
+
+-   **Size:** 2,713 songs (Moderate Size)
+
+-   **Key Characteristics:**
+
+    -   **Very High Speechiness (0.31):** This is the defining feature. Values above 0.33 start indicating spoken word presence.
+
+    -   **High Danceability (0.72):** Even more danceable than Cluster 4.
+
+    -   **Moderate-High Energy (0.65) & Loudness (-6.9 dB):** Still energetic and relatively loud.
+
+    -   **Very Low Instrumentalness (0.007):** Extremely vocal-centric.
+
+    -   **Moderate Valence (0.56) & Tempo (122.5 BPM):** Reasonably positive and similar tempo to Cluster 4.
+
+    -   **Low-Moderate Acousticness (0.23):** Mostly non-acoustic production.
+
+-   **Interpretation:** This cluster is also quite popular. The very high speechiness strongly suggests this group is dominated by **Hip-Hop, Rap**, and potentially R&B tracks with significant rap verses or spoken sections. They are highly danceable and energetic, contributing to their popularity.
+
+**Cluster 3: The Acoustic & Mellow / Ballads & Folk**
+
+-   **Popularity Score:** 1.86 (Third Highest)
+
+-   **Size:** 4,715 songs (Second Largest Cluster)
+
+-   **Key Characteristics:**
+
+    -   **High Acousticness (0.56):** A defining feature. Significantly more acoustic than clusters 4 and 1.
+
+    -   **Low Energy (0.43) & Moderate-Low Loudness (-9.9 dB):** Much quieter and less intense.
+
+    -   **Moderate-Low Danceability (0.54):** Less suited for dancing.
+
+    -   **Lower Valence (0.39):** Tending towards neutral, sad, or calm moods rather than overtly happy.
+
+    -   **Low Speechiness (0.05) & Low Instrumentalness (0.02):** Still primarily vocal music.
+
+    -   **Moderate Tempo (115.5 BPM):** Slightly slower on average than the top clusters.
+
+-   **Interpretation:** This large cluster represents songs with significantly lower average popularity than the first two. The high acousticness, low energy, and lower valence profile points towards **Ballads, Folk music, Singer-Songwriter tracks**, or slower, more subdued Pop/Rock songs. While still mostly vocal, they lack the high energy and loudness of the most popular clusters.
+
+**Cluster 2: The Ambient & Instrumental Niche**
+
+-   **Popularity Score:** 0.54 (Lowest by far)
+
+-   **Size:** 802 songs (Smallest Cluster)
+
+-   **Key Characteristics:**
+
+    -   **Very High Instrumentalness (0.82):** Defining feature. These tracks are mostly or entirely instrumental.
+
+    -   **Very High Acousticness (0.82):** Also defining. Very likely acoustic instruments.
+
+    -   **Very Low Energy (0.19), Very Low Loudness (-22.3 dB), Very Low Danceability (0.33):** Extremely quiet, calm, and not for dancing.
+
+    -   **Very Low Valence (0.17):** Suggests very calm, ambient, possibly melancholic or background moods.
+
+    -   **Low Speechiness (0.05):** Confirms lack of vocals.
+
+    -   **Slower Tempo (104 BPM):** Slowest average tempo.
+
+-   **Interpretation:** This is the smallest and least popular cluster by a significant margin. The combination of extremely high instrumentalness and acousticness, along with very low energy, loudness, and valence, clearly identifies this group as likely **Ambient music, Classical pieces, very sparse Instrumental Folk, or potentially background/study music**. These are typically niche genres with lower stream/view counts compared to mainstream vocal music.
+
+## Machine Learning
+
+Now that we have a good understanding of the components and combinations of features that make a popular song, we can attempt to create a predictive model using machine learning algorithms.
+
+For the sake of this project we will be attempting to make a ML model that can predict the number of streams a song will get based on the songs features ("Danceability", "Energy", "Key", "Loudness",etc.)
+
+### Prepare the Data
+
+First lets import the libraries needed for machine learning
+
+```{r}
+# Load necessary libraries
+library(dplyr)         # For data manipulation
+library(caret)         # For data splitting and potentially model tuning/evaluation
+library(randomForest)  # For the Random Forest model
+library(Metrics)       # For evaluation metrics like rmse, mae
+library(ggplot2)       # For plotting feature importance
+```
+
+We select the required columns and convert the Key variable into a factor, as it represents distinct categories rather than a continuous numerical scale.
+
+```{r}
+# Select predictor features and target variable
+features_for_model <- c("Danceability", "Energy", "Key", "Loudness", "Speechiness",
+                        "Acousticness", "Instrumentalness", "Liveness", "Valence",
+                        "Tempo", "Duration_ms")
+target_variable <- "Stream"
+
+# Create the dataset for modeling
+model_df <- clean_spotify_df %>%
+  select(all_of(features_for_model), all_of(target_variable)) %>%
+  mutate(Key = as.factor(Key)) # Treat Key as a categorical variable
+
+# Check the structure
+str(model_df)
+
+# Optional: Check for remaining NAs (should be none if na.omit was comprehensive)
+
+```
+
+### Split Data into Training and Testing Sets
+
+We'll split the data (e.g., 75% for training, 25% for testing) to evaluate how well the model generalizes to new, unseen data. We set a seed for reproducibility.
+
+```{r}
+set.seed(42) # for reproducible results
+
+# Create indices for the training set
+train_indices <- createDataPartition(model_df$Stream, p = 0.75, list = FALSE)
+
+# Create training and testing sets
+train_data <- model_df[train_indices, ]
+test_data <- model_df[-train_indices, ]
+
+# Check dimensions
+dim(train_data)
+dim(test_data)
+```
+
+### Train the Random Forest Model
+
+We train the Random Forest model using the training data. We include importance=TRUE to calculate feature importance scores later.
+
+```{r}
+# Set seed again just before training for reproducibility of the model itself
+set.seed(42)
+
+# Train the Random Forest model
+
+rf_model <- randomForest(Stream ~ .,
+                         data = train_data,
+                         ntree = 500,       # Number of trees (default is often 500)
+                         importance = TRUE, # Calculate feature importance
+                         na.action = na.omit) # Handle potential NAs missed earlier
+
+# Print model summary (shows type, ntree, mtry, OOB error)
+print(rf_model)
+```
+
+### Make Predictions on the Test Set
+
+Use the trained model `(rf_model)` to predict `popularity_score` for the observations in the test_data.
+
+```{r}
+# Predict on the test set
+predictions <- predict(rf_model, newdata = test_data)
+
+# Combine actuals and predictions for easier comparison/plotting (optional)
+results_df <- data.frame(Actual = test_data$Stream,
+                         Predicted = predictions)
+
+head(results_df)
+```
+
+### Evaluate Model Performance
+
+```{r}
+# Calculate evaluation metrics
+rmse_value <- rmse(actual = test_data$Stream, predicted = predictions)
+mae_value <- mae(actual = test_data$Stream, predicted = predictions)
+
+# Calculate R-squared for the test set predictions
+# Note: This is the squared correlation between actual and predicted values
+# It's a common way to report R-squared for test set performance
+rsquared_value <- cor(test_data$Stream, predictions)^2
+# Alternatively, using caret's R2 function:
+# rsquared_value_caret <- R2(pred = predictions, obs = test_data$popularity_score)
+
+
+cat("Evaluation Metrics on Test Set:\n")
+cat("---------------------------------\n")
+cat("RMSE (Root Mean Squared Error):", round(rmse_value, 4), "\n")
+cat("MAE (Mean Absolute Error):     ", round(mae_value, 4), "\n")
+cat("R-squared:                    ", round(rsquared_value, 4), "\n")
+
+# Optional: Plot Actual vs Predicted
+ggplot(results_df, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") + # Line y=x
+  labs(title = "Actual vs. Predicted Popularity Score (Test Set)",
+       x = "Actual Popularity Score",
+       y = "Predicted Popularity Score") +
+  theme_minimal() +
+  coord_fixed(ratio = 1, xlim = range(results_df$Actual, results_df$Predicted), ylim = range(results_df$Actual, results_df$Predicted)) # Ensure axes have same scale
+```
+
+```{r}
+# Get feature importance
+importance_scores <- importance(rf_model)
+
+# Create a data frame for plotting
+importance_df <- data.frame(
+  Feature = rownames(importance_scores),
+  Importance = importance_scores[, "%IncMSE"] 
+) %>%
+  arrange(desc(Importance)) # Order by importance
+
+# Plot feature importance
+ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() + # Flip coordinates for horizontal bars
+  labs(title = "Feature Importance for # of streams prediction",
+       x = "Features",
+       y = "% Increase in Mean Squared Error (%IncMSE)") +
+  theme_minimal()
+
+# Print the importance data frame
+print(importance_df)
+```
+
+## Overall Conclusions:
+
+Through this project it becomes very clear that there isn't exactly one "winning formula" to making a hit song every time. Music is a very subjective genre as it has a multitude of variables and the popularity of various songs changes based on other outside factors like when and how long has it been released. The data set itself has one major flaw which is that all of the songs in the data set are very popular and have high amounts of streams. Essentially what we did was we comparing the best songs against themselves.
+
+To improve this study the data set could also be changed to include all of the music made in a certain year then comparing the streams or views between those songs using the same song component variables to accurately develop a model.
+
+However, there are certain factors and relations that were found in this project that can give insight into what makes the most songs:
+
+-   Using both the cluster analysis and the multivariable analysis, it was pretty clear that songs with **strong danceability, energy, loudness along with a tempo around 130** tend yield higher popularity scores.
+
+-   **Linear Regression:** A linear model predicting popularity_score using audio features and official_video status can explain some variance. Loudness, Energy, Acousticness, and official_video status appear to be significant predictors. However, the model likely violates key assumptions (normality, homoscedasticity) due to the highly skewed nature of popularity, limiting its predictive reliability without further refinement (e.g., transformations, different model types).
+
+-   **Hypothesis Testing:** There's strong evidence that songs with official videos have significantly higher popularity_score.
+
+Do these results make sense?:
+
+Yes, The findings largely align with intuition and industry knowledge:
+
+-   Higher energy and loudness are common in popular music charts.
+
+-   Acoustic or highly instrumental tracks are often more niche than mainstream vocal pop/rock/electronic tracks.
+
+-   Official videos are crucial for promotion and engagement.
+
+-   The difficulty in perfectly predicting popularity with just audio features makes sense – marketing, artist fame, timing, trends, and subjective taste play huge roles.
+
+-   The skewed distribution of popularity ("winner-takes-all" market) is realistic.
